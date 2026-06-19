@@ -1,121 +1,124 @@
 <template>
   <div class="pets-page">
-    <section class="pets-hero">
-      <h1>Găsește-ți noul cel mai bun prieten 🐾</h1>
-
-      <p>
-        Explorează animăluțele disponibile pentru adopție și descoperă
-        companionul perfect pentru stilul tău de viață.
-      </p>
-
-      <div class="stats">
-        <div class="stat-card">
-          <h3 v-if="loading">...</h3>
-          <h3 v-else>{{ animals.length }}</h3>
-          <span>animăluțe disponibile</span>
-        </div>
-
-        <div class="stat-card">
-          <h3>15</h3>
-          <span>adăposturi partenere</span>
-        </div>
-
-        <div class="stat-card">
-          <h3>347</h3>
-          <span>adopții reușite</span>
-        </div>
-      </div>
-
-      <div class="search-container">
-        <input
-          type="text"
-          v-model="search"
-          placeholder="Caută după nume, specie, oraș sau personalitate..."
-        />
-      </div>
-    </section>
-
-    <section class="pets-results">
-      <div class="results-header">
-        <div>
-          <h2>Animăluțe disponibile</h2>
-          <p>Alege un companion și fă primul pas spre adopție.</p>
-        </div>
-
-        <span class="results-count">
-          {{ loading ? "Se încarcă..." : `${filteredAnimals.length} rezultate` }}
-        </span>
-      </div>
-
-      <div v-if="loading" class="loading-box">
+    <div v-if="loading" class="page-loading">
+      <div class="loading-box">
         Se încarcă animăluțele...
       </div>
+    </div>
 
-      <div v-else-if="filteredAnimals.length === 0" class="empty-box">
-        Nu am găsit animăluțe potrivite.
-      </div>
+    <template v-else>
+      <section class="pets-hero">
+        <h1>Găsește-ți noul cel mai bun prieten 🐾</h1>
 
-      <div v-else class="pets-grid">
-        <article
-          v-for="animal in paginatedAnimals"
-          :key="animal.id"
-          class="pet-card"
-        >
-          <div class="pet-photo">
-            <img
-              :src="animal.imageUrl"
-              :alt="animal.name"
-              loading="lazy"
-            />
+        <p>
+          Explorează animăluțele disponibile pentru adopție și descoperă
+          companionul perfect pentru stilul tău de viață.
+        </p>
+
+        <div class="stats">
+          <div class="stat-card">
+            <h3>{{ animals.length }}</h3>
+            <span>animăluțe disponibile</span>
           </div>
 
-          <div class="pet-content">
-            <div class="pet-title-row">
-              <h3>{{ animal.name }}</h3>
-              <span class="pet-status">{{ animal.status }}</span>
-            </div>
-
-            <p class="pet-meta">
-              {{ animal.species }} • {{ animal.breed }} • {{ animal.ageLabel }}
-            </p>
-
-            <p class="pet-location">
-              📍 {{ animal.city }}
-            </p>
-
-            <p class="pet-description">
-              {{ animal.description }}
-            </p>
-
-            <div class="pet-tags" v-if="animal.temperament">
-              <small
-                v-for="tag in splitTags(animal.temperament)"
-                :key="tag"
-              >
-                {{ tag }}
-              </small>
-            </div>
-
-            <div class="pet-actions">
-              <button class="details-btn">Vezi detalii</button>
-              <button class="favorite-outline">♡</button>
-            </div>
+          <div class="stat-card">
+            <h3>15</h3>
+            <span>adăposturi partenere</span>
           </div>
-        </article>
-      </div>
 
-      <div v-if="totalPages > 1" class="pagination">
-        <button :disabled="currentPage === 1" @click="goToPreviousPage">
-          Înapoi
-        </button>
+          <div class="stat-card">
+            <h3>347</h3>
+            <span>adopții reușite</span>
+          </div>
+        </div>
 
-        <span>Pagina {{ currentPage }} din {{ totalPages }}</span>
+        <div class="search-container">
+          <input
+            type="text"
+            v-model="search"
+            placeholder="Caută după nume, specie, oraș sau personalitate..."
+          />
+        </div>
+      </section>
 
-        <button :disabled="currentPage === totalPages" @click="goToNextPage">
-          Înainte
-        </button>
-      </div>
-    </section>
+      <section class="pets-results">
+        <div class="results-header">
+          <div>
+            <h2>Animăluțe disponibile</h2>
+            <p>Alege un companion și fă primul pas spre adopție.</p>
+          </div>
+
+          <span class="results-count">
+            {{ filteredAnimals.length }} rezultate
+          </span>
+        </div>
+
+        <div v-if="filteredAnimals.length === 0" class="empty-box">
+          Nu am găsit animăluțe potrivite.
+        </div>
+
+        <div v-else class="pets-grid">
+          <article
+            v-for="animal in paginatedAnimals"
+            :key="animal.id"
+            class="pet-card"
+          >
+            <div class="pet-photo">
+              <img
+                :src="animal.imageUrl"
+                :alt="animal.name"
+                loading="lazy"
+              />
+            </div>
+
+            <div class="pet-content">
+              <div class="pet-title-row">
+                <h3>{{ animal.name }}</h3>
+                <span class="pet-status">{{ animal.status }}</span>
+              </div>
+
+              <p class="pet-meta">
+                {{ animal.species }} • {{ animal.breed }} • {{ animal.ageLabel }}
+              </p>
+
+              <p class="pet-location">
+                📍 {{ animal.city }}
+              </p>
+
+              <p class="pet-description">
+                {{ animal.description }}
+              </p>
+
+              <div class="pet-tags" v-if="animal.temperament">
+                <small
+                  v-for="tag in splitTags(animal.temperament)"
+                  :key="tag"
+                >
+                  {{ tag }}
+                </small>
+              </div>
+
+              <div class="pet-actions">
+                <button class="details-btn">Vezi detalii</button>
+                <button class="favorite-outline">♡</button>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div v-if="totalPages > 1" class="pagination">
+          <button :disabled="currentPage === 1" @click="goToPreviousPage">
+            Înapoi
+          </button>
+
+          <span>Pagina {{ currentPage }} din {{ totalPages }}</span>
+
+          <button :disabled="currentPage === totalPages" @click="goToNextPage">
+            Înainte
+          </button>
+        </div>
+      </section>
+    </template>
   </div>
 </template>
 
