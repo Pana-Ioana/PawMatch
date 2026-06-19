@@ -10,7 +10,8 @@
 
       <div class="stats">
         <div class="stat-card">
-          <h3>{{ animals.length }}</h3>
+          <h3 v-if="loading">...</h3>
+          <h3 v-else>{{ animals.length }}</h3>
           <span>animăluțe disponibile</span>
         </div>
 
@@ -42,7 +43,7 @@
         </div>
 
         <span class="results-count">
-          {{ filteredAnimals.length }} rezultate
+          {{ loading ? "Se încarcă..." : `${filteredAnimals.length} rezultate` }}
         </span>
       </div>
 
@@ -61,7 +62,12 @@
           class="pet-card"
         >
           <div class="pet-photo">
-            <img :src="animal.imageUrl" :alt="animal.name" />          </div>
+            <img
+              :src="animal.imageUrl"
+              :alt="animal.name"
+              loading="lazy"
+            />
+          </div>
 
           <div class="pet-content">
             <div class="pet-title-row">
@@ -99,13 +105,13 @@
       </div>
 
       <div v-if="totalPages > 1" class="pagination">
-        <button :disabled="currentPage === 1" @click="currentPage--">
+        <button :disabled="currentPage === 1" @click="goToPreviousPage">
           Înapoi
         </button>
 
         <span>Pagina {{ currentPage }} din {{ totalPages }}</span>
 
-        <button :disabled="currentPage === totalPages" @click="currentPage++">
+        <button :disabled="currentPage === totalPages" @click="goToNextPage">
           Înainte
         </button>
       </div>
@@ -174,10 +180,28 @@ watch(search, () => {
   currentPage.value = 1;
 });
 
+watch(filteredAnimals, () => {
+  if (currentPage.value > totalPages.value) {
+    currentPage.value = totalPages.value || 1;
+  }
+});
+
 const splitTags = (text) => {
   return text
     .split(",")
     .map((tag) => tag.trim())
     .filter((tag) => tag !== "");
+};
+
+const goToPreviousPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+  }
+};
+
+const goToNextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+  }
 };
 </script>
