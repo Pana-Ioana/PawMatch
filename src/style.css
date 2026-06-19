@@ -738,17 +738,32 @@ button {
 }
 
 .pet-photo {
-  height: 230px;
-  position: relative;
+  height: 270px;
   overflow: hidden;
-  background: #f4eee5;
+  background: white;
 }
 
 .pet-photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
+  object-position: center 15%;
+}
+
+.pets-grid .pet-card {
+  min-height: 590px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pet-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.pet-actions {
+  margin-top: auto;
 }
 
 .heart-btn {
