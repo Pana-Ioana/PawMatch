@@ -39,6 +39,59 @@
             placeholder="Caută după nume, specie, oraș sau personalitate..."
           />
         </div>
+
+        <div class="filters-panel">
+          <select v-model="selectedSpecies">
+            <option value="">Toate speciile</option>
+            <option v-for="species in speciesOptions" :key="species" :value="species">
+              {{ species }}
+            </option>
+          </select>
+
+          <select v-model="selectedCity">
+            <option value="">Toate orașele</option>
+            <option v-for="city in cityOptions" :key="city" :value="city">
+              {{ city }}
+            </option>
+          </select>
+
+          <select v-model="selectedSize">
+            <option value="">Toate mărimile</option>
+            <option v-for="size in sizeOptions" :key="size" :value="size">
+              {{ size }}
+            </option>
+          </select>
+
+          <select v-model="selectedStatus">
+            <option value="">Toate statusurile</option>
+            <option v-for="status in statusOptions" :key="status" :value="status">
+              {{ status }}
+            </option>
+          </select>
+
+          <select v-model.number="itemsPerPage">
+            <option :value="3">3 / pagină</option>
+            <option :value="6">6 / pagină</option>
+            <option :value="9">9 / pagină</option>
+            <option :value="12">12 / pagină</option>
+          </select>
+
+          <button class="reset-filters-btn" @click="resetFilters">
+            Resetează
+          </button>
+        </div>
+
+        <div v-if="activeFilters.length > 0" class="active-filters">
+          <span>Filtre aplicate:</span>
+
+          <button
+            v-for="filter in activeFilters"
+            :key="filter.key"
+            @click="removeFilter(filter.key)"
+          >
+            {{ filter.label }} ×
+          </button>
+        </div>
       </section>
 
       <section class="pets-results">
@@ -54,7 +107,7 @@
         </div>
 
         <div v-if="filteredAnimals.length === 0" class="empty-box">
-          Nu am găsit animăluțe potrivite.
+          Nu am găsit animăluțe potrivite pentru filtrele aplicate.
         </div>
 
         <div v-else class="pets-grid">
@@ -111,7 +164,14 @@
             Înapoi
           </button>
 
-          <span>Pagina {{ currentPage }} din {{ totalPages }}</span>
+          <button
+            v-for="page in totalPages"
+            :key="page"
+            :class="{ active: currentPage === page }"
+            @click="currentPage = page"
+          >
+            {{ page }}
+          </button>
 
           <button :disabled="currentPage === totalPages" @click="goToNextPage">
             Înainte
@@ -131,8 +191,13 @@ const animals = ref([]);
 const loading = ref(true);
 const search = ref("");
 
+const selectedSpecies = ref("");
+const selectedCity = ref("");
+const selectedSize = ref("");
+const selectedStatus = ref("");
+
 const currentPage = ref(1);
-const itemsPerPage = 6;
+const itemsPerPage = ref(6);
 
 onMounted(async () => {
   try {
@@ -149,39 +214,133 @@ onMounted(async () => {
   }
 });
 
+const uniqueOptions = (field) => {
+  return [
+    ...new Set(
+      animals.value
+        .map((animal) => animal[field])
+        .filter((value) => value && value !== "")
+    ),
+  ].sort();
+};
+
+const speciesOptions = computed(() => uniqueOptions("species"));
+const cityOptions = computed(() => uniqueOptions("city"));
+const sizeOptions = computed(() => uniqueOptions("size"));
+const statusOptions = computed(() => uniqueOptions("status"));
+
 const filteredAnimals = computed(() => {
   const query = search.value.toLowerCase().trim();
 
-  if (!query) {
-    return animals.value;
-  }
-
   return animals.value.filter((animal) => {
-    return (
+    const matchesSearch =
+      !query ||
       animal.name?.toLowerCase().includes(query) ||
       animal.species?.toLowerCase().includes(query) ||
       animal.breed?.toLowerCase().includes(query) ||
       animal.city?.toLowerCase().includes(query) ||
       animal.temperament?.toLowerCase().includes(query) ||
-      animal.description?.toLowerCase().includes(query)
+      animal.description?.toLowerCase().includes(query);
+
+    const matchesSpecies =
+      !selectedSpecies.value || animal.species === selectedSpecies.value;
+
+    const matchesCity =
+      !selectedCity.value || animal.city === selectedCity.value;
+
+    const matchesSize =
+      !selectedSize.value || animal.size === selectedSize.value;
+
+    const matchesStatus =
+      !selectedStatus.value || animal.status === selectedStatus.value;
+
+    return (
+      matchesSearch &&
+      matchesSpecies &&
+      matchesCity &&
+      matchesSize &&
+      matchesStatus
     );
   });
 });
 
 const totalPages = computed(() => {
-  return Math.ceil(filteredAnimals.value.length / itemsPerPage);
+  return Math.ceil(filteredAnimals.value.length / itemsPerPage.value);
 });
 
 const paginatedAnimals = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
 
   return filteredAnimals.value.slice(start, end);
 });
 
-watch(search, () => {
-  currentPage.value = 1;
+const activeFilters = computed(() => {
+  const filters = [];
+
+  if (search.value.trim()) {
+    filters.push({
+      key: "search",
+      label: `Căutare: ${search.value.trim()}`,
+    });
+  }
+
+  if (selectedSpecies.value) {
+    filters.push({
+      key: "species",
+      label: selectedSpecies.value,
+    });
+  }
+
+  if (selectedCity.value) {
+    filters.push({
+      key: "city",
+      label: selectedCity.value,
+    });
+  }
+
+  if (selectedSize.value) {
+    filters.push({
+      key: "size",
+      label: selectedSize.value,
+    });
+  }
+
+  if (selectedStatus.value) {
+    filters.push({
+      key: "status",
+      label: selectedStatus.value,
+    });
+  }
+
+  return filters;
 });
+
+const resetFilters = () => {
+  search.value = "";
+  selectedSpecies.value = "";
+  selectedCity.value = "";
+  selectedSize.value = "";
+  selectedStatus.value = "";
+  currentPage.value = 1;
+};
+
+const removeFilter = (key) => {
+  if (key === "search") search.value = "";
+  if (key === "species") selectedSpecies.value = "";
+  if (key === "city") selectedCity.value = "";
+  if (key === "size") selectedSize.value = "";
+  if (key === "status") selectedStatus.value = "";
+
+  currentPage.value = 1;
+};
+
+watch(
+  [search, selectedSpecies, selectedCity, selectedSize, selectedStatus, itemsPerPage],
+  () => {
+    currentPage.value = 1;
+  }
+);
 
 watch(filteredAnimals, () => {
   if (currentPage.value > totalPages.value) {

@@ -1,17 +1,6 @@
 <template>
-  <div class="page">
-    <nav class="navbar">
-      <div class="logo">🐾 <span>PawMatch</span></div>
-
-      <div class="nav-links">
-        <a>Acasă</a>
-        <router-link to="/pets" class="nav-link">Animăluțe</router-link>
-        <a>Quiz</a>
-        <a>Favorite</a>
-      </div>
-
-      <button class="account-btn">Contul meu</button>
-    </nav>
+  <div>
+  
 
     <main>
       <section class="hero">
