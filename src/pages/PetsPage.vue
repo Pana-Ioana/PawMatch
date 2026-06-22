@@ -152,7 +152,9 @@
               </div>
 
               <div class="pet-actions">
-                <button class="details-btn">Vezi detalii</button>
+                <button class="details-btn" @click="goToPetDetails(animal.id)">
+  Vezi detalii
+</button>
                 <button class="favorite-outline">♡</button>
               </div>
             </div>
@@ -186,6 +188,9 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
 
 const animals = ref([]);
 const loading = ref(true);
@@ -365,5 +370,9 @@ const goToNextPage = () => {
   if (currentPage.value < totalPages.value) {
     currentPage.value++;
   }
+};
+
+const goToPetDetails = (id) => {
+  router.push(`/pets/${id}`);
 };
 </script>

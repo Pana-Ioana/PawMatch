@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory } from "vue-router";
 
 import HomePage from "../pages/HomePage.vue";
 import PetsPage from "../pages/PetsPage.vue";
+import PetDetailsPage from "../pages/PetDetailsPage.vue";
 
 const routes = [
   {
@@ -14,6 +15,11 @@ const routes = [
     name: "pets",
     component: PetsPage,
   },
+  {
+  path: "/pets/:id",
+  name: "pet-details",
+  component: PetDetailsPage,
+},
 ];
 
 const router = createRouter({
