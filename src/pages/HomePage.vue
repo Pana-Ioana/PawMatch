@@ -17,7 +17,7 @@
           </p>
 
           <div class="hero-buttons">
-            <button class="primary-btn">Începe quiz-ul</button>
+            <button class="primary-btn" @click ="goToQuiz">Începe quiz-ul</button>
             <button class="secondary-btn" @click="goToPets">Vezi animăluțele</button>
           </div>
         </div>
@@ -38,7 +38,7 @@
             Răspunde la câteva întrebări despre programul tău, spațiu,
             energie și experiență, iar PawMatch îți recomandă companionul ideal.
           </p>
-          <button class="dark-btn">Fă quiz-ul 🐾</button>
+          <button class="dark-btn" @click = "goToQuiz" >Fă quiz-ul 🐾</button>
         </div>
       </section>
 
@@ -123,6 +123,10 @@ const router = useRouter()
 
 const goToPets = () => {
     router.push("/pets")
+}
+
+const goToQuiz = () => {
+  router.push("/quiz")
 }
 const pets = [
   {
