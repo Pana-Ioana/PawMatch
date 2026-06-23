@@ -5,6 +5,7 @@ import PetsPage from "../pages/PetsPage.vue";
 import PetDetailsPage from "../pages/PetDetailsPage.vue";
 import QuizPage from "../pages/QuizPage.vue";
 import RegisterPage from "../pages/RegisterPage.vue";
+import LoginPage from "../pages/LoginPage.vue";
 
 const routes = [
   {
@@ -31,6 +32,11 @@ const routes = [
   path: "/register",
   name: "register",
   component: RegisterPage,
+},
+{
+  path: "/login",
+  name: "login",
+  component: LoginPage,
 }
 ];
 
