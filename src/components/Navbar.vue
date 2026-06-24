@@ -5,74 +5,67 @@
     </router-link>
 
     <div class="nav-links">
-      <router-link to="/" class="nav-link">
-        Acasă
-      </router-link>
-
-      <router-link to="/pets" class="nav-link">
-        Animăluțe
-      </router-link>
-
-      <router-link to="/quiz" class="nav-link">
-        Quiz
-      </router-link>
-
-      <router-link to="/favorites" class="nav-link">
-        Favorite
-      </router-link>
+      <router-link to="/" class="nav-link">Acasă</router-link>
+      <router-link to="/pets" class="nav-link">Animăluțe</router-link>
+      <router-link to="/quiz" class="nav-link">Quiz</router-link>
+      <router-link to="/favorites" class="nav-link">Favorite</router-link>
     </div>
 
-    <button
-      class="account-btn"
-      @click="handleAccountClick"
-    >
-      {{ displayName }}
-    </button>
+    <div class="account-area">
+      <button v-if="!userName" class="account-btn" @click="goToLogin">
+        Contul meu
+      </button>
+
+      <button v-else class="account-btn" @click="logoutUser">
+        {{ userName }}
+      </button>
+    </div>
   </nav>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-
 const router = useRouter();
-
-const displayName = ref("Contul meu");
+const userName = ref("");
 
 onMounted(() => {
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      displayName.value = "Contul meu";
+      userName.value = "";
+      localStorage.removeItem("pawmatchUser");
       return;
     }
 
-    try {
-      const snapshot = await getDoc(
-        doc(db, "users", user.uid)
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      userName.value = `${data.firstName} ${data.lastName}`;
+
+      localStorage.setItem(
+        "pawmatchUser",
+        JSON.stringify({
+          uid: user.uid,
+          ...data,
+        })
       );
-
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-
-        displayName.value =
-          `${data.firstName} ${data.lastName}`;
-      }
-    } catch (error) {
-      console.error(error);
     }
   });
 });
 
-const handleAccountClick = () => {
-  if (displayName.value === "Contul meu") {
-    router.push("/register");
-  } else {
-    router.push("/profile");
-  }
+const goToLogin = () => {
+  router.push("/login");
+};
+
+const logoutUser = async () => {
+  await signOut(auth);
+  localStorage.removeItem("pawmatchUser");
+  userName.value = "";
+  router.push("/");
 };
 </script>

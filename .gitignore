@@ -31,3 +31,7 @@ coverage/
 
 # cache
 .cache/
+
+backend/serviceAccountKey.json
+backend/.env
+backend/node_modules

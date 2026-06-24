@@ -67,12 +67,20 @@
           </div>
 
           <div class="profile-actions">
-            <button class="adopt-btn" @click="showAdoptionForm = true">
+            <button class="adopt-btn" @click="openAdoptionForm">
               Trimite cerere de adopție 🐾
             </button>
 
             <button class="favorite-profile-btn">
               ♡ Salvează la favorite
+            </button>
+          </div>
+
+          <div v-if="authMessage" class="auth-required-box">
+            <p>{{ authMessage }}</p>
+
+            <button @click="goToLogin">
+              Mergi la login
             </button>
           </div>
         </div>
@@ -82,7 +90,7 @@
         <h2>Cerere adopție pentru {{ animal.name }}</h2>
 
         <p>
-          Completează câteva informații, iar echipa PawMatch va analiza cererea ta.
+          Completează câteva informații, iar cererea ta va fi salvată cu status pending.
         </p>
 
         <form class="adoption-form" @submit.prevent="submitAdoptionRequest">
@@ -90,37 +98,37 @@
             v-model="requestForm.fullName"
             type="text"
             placeholder="Numele tău complet"
-            required
           />
 
           <input
             v-model="requestForm.email"
             type="email"
             placeholder="Email"
-            required
           />
 
           <input
             v-model="requestForm.phone"
             type="text"
             placeholder="Telefon"
-            required
           />
 
           <textarea
             v-model="requestForm.message"
             placeholder="De ce vrei să adopți acest animăluț?"
-            required
           ></textarea>
 
-          <button class="adopt-btn" type="submit">
-            Trimite cererea
+          <p v-if="formError" class="error-message">
+            {{ formError }}
+          </p>
+
+          <p v-if="successMessage" class="success-message">
+            {{ successMessage }}
+          </p>
+
+          <button class="adopt-btn" type="submit" :disabled="submitting">
+            {{ submitting ? "Se trimite cererea..." : "Trimite cererea" }}
           </button>
         </form>
-
-        <p v-if="successMessage" class="success-message">
-          {{ successMessage }}
-        </p>
       </section>
     </main>
   </div>
@@ -130,14 +138,21 @@
 import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { doc, getDoc, collection, addDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { db, auth } from "../firebase";
 
 const route = useRoute();
 const router = useRouter();
 
 const animal = ref(null);
+const currentUser = ref(null);
+
 const loading = ref(true);
+const submitting = ref(false);
 const showAdoptionForm = ref(false);
+
+const authMessage = ref("");
+const formError = ref("");
 const successMessage = ref("");
 
 const requestForm = ref({
@@ -148,6 +163,10 @@ const requestForm = ref({
 });
 
 onMounted(async () => {
+  onAuthStateChanged(auth, (user) => {
+    currentUser.value = user;
+  });
+
   try {
     const animalId = route.params.id;
     const docRef = doc(db, "animals", animalId);
@@ -166,6 +185,109 @@ onMounted(async () => {
   }
 });
 
+const openAdoptionForm = () => {
+  authMessage.value = "";
+  formError.value = "";
+  successMessage.value = "";
+
+  if (!currentUser.value) {
+    showAdoptionForm.value = false;
+    authMessage.value =
+      "Trebuie să fii autentificat pentru a trimite o cerere de adopție.";
+    return;
+  }
+
+  showAdoptionForm.value = true;
+};
+
+const validateAdoptionForm = () => {
+  if (!requestForm.value.fullName.trim()) {
+    return "Numele complet este obligatoriu.";
+  }
+
+  if (!requestForm.value.email.trim()) {
+    return "Emailul este obligatoriu.";
+  }
+
+  if (!requestForm.value.email.includes("@")) {
+    return "Emailul nu este valid.";
+  }
+
+  if (!requestForm.value.phone.trim()) {
+    return "Telefonul este obligatoriu.";
+  }
+
+  if (requestForm.value.phone.trim().length < 10) {
+    return "Telefonul trebuie să aibă minimum 10 caractere.";
+  }
+
+  if (!requestForm.value.message.trim()) {
+    return "Mesajul este obligatoriu.";
+  }
+
+  if (requestForm.value.message.trim().length < 20) {
+    return "Mesajul trebuie să aibă minimum 20 de caractere.";
+  }
+
+  return "";
+};
+
+const submitAdoptionRequest = async () => {
+  formError.value = "";
+  successMessage.value = "";
+
+  if (!currentUser.value) {
+    showAdoptionForm.value = false;
+    authMessage.value =
+      "Trebuie să fii autentificat pentru a trimite o cerere de adopție.";
+    return;
+  }
+
+  const validationError = validateAdoptionForm();
+
+  if (validationError) {
+    formError.value = validationError;
+    return;
+  }
+
+  submitting.value = true;
+
+  try {
+    await addDoc(collection(db, "adoptionRequests"), {
+      animalId: animal.value.id,
+      animalName: animal.value.name,
+      animalSpecies: animal.value.species,
+      animalImageUrl: animal.value.imageUrl,
+
+      userId: currentUser.value.uid,
+      userEmail: currentUser.value.email,
+
+      fullName: requestForm.value.fullName.trim(),
+      email: requestForm.value.email.trim(),
+      phone: requestForm.value.phone.trim(),
+      message: requestForm.value.message.trim(),
+
+      status: "pending",
+      createdAt: new Date(),
+    });
+
+    successMessage.value =
+      "Cererea ta a fost trimisă cu succes și este în pending.";
+
+    requestForm.value = {
+      fullName: "",
+      email: "",
+      phone: "",
+      message: "",
+    };
+  } catch (error) {
+    console.error("Eroare la trimiterea cererii:", error);
+    formError.value = "Cererea nu a putut fi trimisă. Încearcă din nou.";
+  } finally {
+    submitting.value = false;
+  }
+};
+
 const splitTags = (text) => {
   return text
     .split(",")
@@ -177,28 +299,7 @@ const goBack = () => {
   router.push("/pets");
 };
 
-const submitAdoptionRequest = async () => {
-  try {
-    await addDoc(collection(db, "adoptionRequests"), {
-      animalId: animal.value.id,
-      animalName: animal.value.name,
-      ...requestForm.value,
-      status: "Pending",
-      createdAt: new Date(),
-    });
-
-    successMessage.value = "Cererea ta a fost trimisă cu succes!";
-
-    requestForm.value = {
-      fullName: "",
-      email: "",
-      phone: "",
-      message: "",
-    };
-
-    showAdoptionForm.value = false;
-  } catch (error) {
-    console.error("Eroare la trimiterea cererii:", error);
-  }
+const goToLogin = () => {
+  router.push("/login");
 };
 </script>

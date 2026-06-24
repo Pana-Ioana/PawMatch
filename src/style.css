@@ -1439,3 +1439,27 @@ main {
     font-size: 34px;
   }
 }
+
+.auth-required-box {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255, 196, 130, 0.18);
+  border: 1px solid rgba(247, 148, 47, 0.22);
+}
+
+.auth-required-box p {
+  margin: 0 0 12px;
+  color: var(--indigo);
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.auth-required-box button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: var(--indigo);
+  color: white;
+  font-weight: 800;
+}

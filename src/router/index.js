@@ -19,25 +19,25 @@ const routes = [
     component: PetsPage,
   },
   {
-  path: "/pets/:id",
-  name: "pet-details",
-  component: PetDetailsPage,
-},
+    path: "/pets/:id",
+    name: "pet-details",
+    component: PetDetailsPage,
+  },
   {
-  path: "/quiz",
-  name: "quiz",
-  component: QuizPage,
-},
-{
-  path: "/register",
-  name: "register",
-  component: RegisterPage,
-},
-{
-  path: "/login",
-  name: "login",
-  component: LoginPage,
-}
+    path: "/quiz",
+    name: "quiz",
+    component: QuizPage,
+  },
+  {
+    path: "/register",
+    name: "register",
+    component: RegisterPage,
+  },
+  {
+    path: "/login",
+    name: "login",
+    component: LoginPage,
+  },
 ];
 
 const router = createRouter({
