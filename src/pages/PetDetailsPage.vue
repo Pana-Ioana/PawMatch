@@ -254,22 +254,22 @@ const submitAdoptionRequest = async () => {
 
   try {
     await addDoc(collection(db, "adoptionRequests"), {
-      animalId: animal.value.id,
-      animalName: animal.value.name,
-      animalSpecies: animal.value.species,
-      animalImageUrl: animal.value.imageUrl,
+  animalId: animal.value.id,
+  animalName: animal.value.name,
+  animalSpecies: animal.value.species,
+  animalImageUrl: animal.value.imageUrl,
 
-      userId: currentUser.value.uid,
-      userEmail: currentUser.value.email,
+  userId: currentUser.value.uid,
+  userEmail: currentUser.value.email,
 
-      fullName: requestForm.value.fullName.trim(),
-      email: requestForm.value.email.trim(),
-      phone: requestForm.value.phone.trim(),
-      message: requestForm.value.message.trim(),
+  fullName: requestForm.value.fullName.trim(),
+  email: requestForm.value.email.trim(),
+  phone: requestForm.value.phone.trim(),
+  message: requestForm.value.message.trim(),
 
-      status: "pending",
-      createdAt: new Date(),
-    });
+  status: "pending",
+  createdAt: new Date(),
+});
 
     successMessage.value =
       "Cererea ta a fost trimisă cu succes și este în pending.";

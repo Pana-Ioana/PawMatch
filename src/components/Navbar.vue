@@ -16,9 +16,21 @@
         Contul meu
       </button>
 
-      <button v-else class="account-btn" @click="logoutUser">
-        {{ userName }}
-      </button>
+      <div v-else class="user-dropdown">
+        <button class="account-btn" @click="toggleDropdown">
+          👤 {{ userName }}
+        </button>
+
+        <div v-if="dropdownOpen" class="dropdown-menu">
+          <button @click="goToMyRequests">
+            Cererile mele de adopție
+          </button>
+
+          <button @click="logoutUser">
+            Logout
+          </button>
+        </div>
+      </div>
     </div>
   </nav>
 </template>
@@ -31,12 +43,15 @@ import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 
 const router = useRouter();
+
 const userName = ref("");
+const dropdownOpen = ref(false);
 
 onMounted(() => {
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
       userName.value = "";
+      dropdownOpen.value = false;
       localStorage.removeItem("pawmatchUser");
       return;
     }
@@ -58,14 +73,24 @@ onMounted(() => {
   });
 });
 
+const toggleDropdown = () => {
+  dropdownOpen.value = !dropdownOpen.value;
+};
+
 const goToLogin = () => {
   router.push("/login");
+};
+
+const goToMyRequests = () => {
+  dropdownOpen.value = false;
+  router.push("/requests");
 };
 
 const logoutUser = async () => {
   await signOut(auth);
   localStorage.removeItem("pawmatchUser");
   userName.value = "";
+  dropdownOpen.value = false;
   router.push("/");
 };
 </script>

@@ -6,6 +6,7 @@ import PetDetailsPage from "../pages/PetDetailsPage.vue";
 import QuizPage from "../pages/QuizPage.vue";
 import RegisterPage from "../pages/RegisterPage.vue";
 import LoginPage from "../pages/LoginPage.vue";
+import RequestsPage from "../pages/RequestsPage.vue";
 
 const routes = [
   {
@@ -38,6 +39,11 @@ const routes = [
     name: "login",
     component: LoginPage,
   },
+  {
+    path: "/requests",
+    name: "requests",
+    component: RequestsPage,
+  }
 ];
 
 const router = createRouter({
