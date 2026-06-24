@@ -20,6 +20,14 @@
       </div>
 
       <div v-else class="requests-list">
+        <p v-if="pageMessage" class="success-message">
+          {{ pageMessage }}
+        </p>
+
+        <p v-if="pageError" class="error-message">
+          {{ pageError }}
+        </p>
+
         <article
           v-for="request in requests"
           :key="request.id"
@@ -50,6 +58,20 @@
             <small>
               {{ request.fullName }} • {{ request.email }} • {{ request.phone }}
             </small>
+
+            <div class="request-actions">
+              <button
+                v-if="request.status === 'pending'"
+                class="delete-request-btn"
+                @click="deleteRequest(request.id)"
+              >
+                Șterge cererea
+              </button>
+
+              <span v-else class="request-locked">
+                Cererea nu mai poate fi ștearsă deoarece statusul este {{ request.status }}.
+              </span>
+            </div>
           </div>
         </article>
       </div>
@@ -64,6 +86,9 @@ import {
   getDocs,
   query,
   where,
+  doc,
+  getDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../firebase";
@@ -71,6 +96,9 @@ import { db, auth } from "../firebase";
 const loading = ref(true);
 const currentUser = ref(null);
 const requests = ref([]);
+
+const pageMessage = ref("");
+const pageError = ref("");
 
 onMounted(() => {
   onAuthStateChanged(auth, async (user) => {
@@ -95,9 +123,9 @@ const loadRequests = async (userId) => {
     const snapshot = await getDocs(requestsQuery);
 
     requests.value = snapshot.docs
-      .map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
+      .map((docItem) => ({
+        id: docItem.id,
+        ...docItem.data(),
       }))
       .sort((a, b) => {
         const dateA = a.createdAt?.seconds || 0;
@@ -106,8 +134,53 @@ const loadRequests = async (userId) => {
       });
   } catch (error) {
     console.error("Eroare la citirea cererilor:", error);
+    pageError.value = "Cererile nu au putut fi încărcate.";
   } finally {
     loading.value = false;
+  }
+};
+
+const deleteRequest = async (requestId) => {
+  pageMessage.value = "";
+  pageError.value = "";
+
+  if (!currentUser.value) {
+    pageError.value = "Trebuie să fii autentificat pentru a șterge cererea.";
+    return;
+  }
+
+  try {
+    const requestRef = doc(db, "adoptionRequests", requestId);
+    const requestSnapshot = await getDoc(requestRef);
+
+    if (!requestSnapshot.exists()) {
+      pageError.value = "Cererea nu mai există în baza de date.";
+      return;
+    }
+
+    const requestData = requestSnapshot.data();
+
+    if (requestData.userId !== currentUser.value.uid) {
+      pageError.value = "Nu poți șterge o cerere care nu îți aparține.";
+      return;
+    }
+
+    if (requestData.status !== "pending") {
+      pageError.value =
+        "Cererea nu mai poate fi ștearsă deoarece nu mai este în status pending.";
+      return;
+    }
+
+    await deleteDoc(requestRef);
+
+    requests.value = requests.value.filter(
+      (request) => request.id !== requestId
+    );
+
+    pageMessage.value = "Cererea a fost ștearsă cu succes.";
+  } catch (error) {
+    console.error("Eroare la ștergerea cererii:", error);
+    pageError.value = "Cererea nu a putut fi ștearsă. Încearcă din nou.";
   }
 };
 </script>

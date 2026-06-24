@@ -1631,3 +1631,29 @@ main {
     flex-direction: column;
   }
 }
+
+.request-actions {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.delete-request-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 16px;
+  background: rgba(247, 148, 47, 0.14);
+  color: #9a5200;
+  font-weight: 800;
+}
+
+.delete-request-btn:hover {
+  background: rgba(247, 148, 47, 0.22);
+}
+
+.request-locked {
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 14px;
+}
