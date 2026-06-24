@@ -1,9 +1,7 @@
 <template>
   <div class="pets-page">
     <div v-if="loading" class="page-loading">
-      <div class="loading-box">
-        Se încarcă animăluțele...
-      </div>
+      <div class="loading-box">Se încarcă animăluțele...</div>
     </div>
 
     <template v-else>
@@ -106,6 +104,15 @@
           </span>
         </div>
 
+        <div v-if="favoriteMessage" class="success-message favorite-feedback">
+          {{ favoriteMessage }}
+        </div>
+
+        <div v-if="favoriteError" class="auth-required-box favorite-feedback">
+          <p>{{ favoriteError }}</p>
+          <button @click="goToLogin">Mergi la login</button>
+        </div>
+
         <div v-if="filteredAnimals.length === 0" class="empty-box">
           Nu am găsit animăluțe potrivite pentru filtrele aplicate.
         </div>
@@ -117,11 +124,7 @@
             class="pet-card"
           >
             <div class="pet-photo">
-              <img
-                :src="animal.imageUrl"
-                :alt="animal.name"
-                loading="lazy"
-              />
+              <img :src="animal.imageUrl" :alt="animal.name" loading="lazy" />
             </div>
 
             <div class="pet-content">
@@ -134,9 +137,7 @@
                 {{ animal.species }} • {{ animal.breed }} • {{ animal.ageLabel }}
               </p>
 
-              <p class="pet-location">
-                📍 {{ animal.city }}
-              </p>
+              <p class="pet-location">📍 {{ animal.city }}</p>
 
               <p class="pet-description">
                 {{ animal.description }}
@@ -153,9 +154,16 @@
 
               <div class="pet-actions">
                 <button class="details-btn" @click="goToPetDetails(animal.id)">
-  Vezi detalii
-</button>
-                <button class="favorite-outline">♡</button>
+                  Vezi detalii
+                </button>
+
+                <button
+                  class="favorite-outline"
+                  :class="{ active: isFavorite(animal.id) }"
+                  @click="toggleFavorite(animal)"
+                >
+                  {{ isFavorite(animal.id) ? "♥" : "♡" }}
+                </button>
               </div>
             </div>
           </article>
@@ -186,9 +194,16 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../firebase";
+import {
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  deleteDoc,
+} from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "vue-router";
+import { db, auth } from "../firebase";
 
 const router = useRouter();
 
@@ -204,13 +219,28 @@ const selectedStatus = ref("");
 const currentPage = ref(1);
 const itemsPerPage = ref(6);
 
+const currentUser = ref(null);
+const favoriteIds = ref([]);
+const favoriteMessage = ref("");
+const favoriteError = ref("");
+
 onMounted(async () => {
+  onAuthStateChanged(auth, async (user) => {
+    currentUser.value = user;
+
+    if (user) {
+      await loadFavorites(user.uid);
+    } else {
+      favoriteIds.value = [];
+    }
+  });
+
   try {
     const snapshot = await getDocs(collection(db, "animals"));
 
-    animals.value = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
+    animals.value = snapshot.docs.map((docItem) => ({
+      id: docItem.id,
+      ...docItem.data(),
     }));
   } catch (error) {
     console.error("Eroare la citirea animalelor:", error);
@@ -218,6 +248,60 @@ onMounted(async () => {
     loading.value = false;
   }
 });
+
+const loadFavorites = async (userId) => {
+  const favoritesSnapshot = await getDocs(
+    collection(db, "users", userId, "favorites")
+  );
+
+  favoriteIds.value = favoritesSnapshot.docs.map((docItem) => docItem.id);
+};
+
+const toggleFavorite = async (animal) => {
+  favoriteMessage.value = "";
+  favoriteError.value = "";
+
+  if (!currentUser.value) {
+    favoriteError.value =
+      "Trebuie să fii autentificat pentru a adăuga animăluțe la favorite.";
+    return;
+  }
+
+  const favoriteRef = doc(
+    db,
+    "users",
+    currentUser.value.uid,
+    "favorites",
+    animal.id
+  );
+
+  if (favoriteIds.value.includes(animal.id)) {
+    await deleteDoc(favoriteRef);
+
+    favoriteIds.value = favoriteIds.value.filter((id) => id !== animal.id);
+    favoriteMessage.value = `${animal.name} a fost eliminat din favorite.`;
+    return;
+  }
+
+  await setDoc(favoriteRef, {
+    animalId: animal.id,
+    animalName: animal.name,
+    animalSpecies: animal.species,
+    animalBreed: animal.breed,
+    animalAgeLabel: animal.ageLabel,
+    animalCity: animal.city,
+    animalImageUrl: animal.imageUrl,
+    animalDescription: animal.description,
+    createdAt: new Date(),
+  });
+
+  favoriteIds.value.push(animal.id);
+  favoriteMessage.value = `${animal.name} a fost adăugat la favorite.`;
+};
+
+const isFavorite = (animalId) => {
+  return favoriteIds.value.includes(animalId);
+};
 
 const uniqueOptions = (field) => {
   return [
@@ -374,5 +458,9 @@ const goToNextPage = () => {
 
 const goToPetDetails = (id) => {
   router.push(`/pets/${id}`);
+};
+
+const goToLogin = () => {
+  router.push("/login");
 };
 </script>

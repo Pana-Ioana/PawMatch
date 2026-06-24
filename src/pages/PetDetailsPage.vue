@@ -71,11 +71,23 @@
               Trimite cerere de adopție 🐾
             </button>
 
-            <button class="favorite-profile-btn">
-              ♡ Salvează la favorite
-            </button>
+            <button
+  class="favorite-profile-btn"
+  :class="{ active: isFavorite(animal.id) }"
+  @click="toggleFavorite(animal)"
+>
+  {{ isFavorite(animal.id) ? "♥ Salvat la favorite" : "♡ Salvează la favorite" }}
+</button>
           </div>
 
+<p v-if="favoriteMessage" class="success-message">
+  {{ favoriteMessage }}
+</p>
+
+<div v-if="favoriteError" class="auth-required-box">
+  <p>{{ favoriteError }}</p>
+  <button @click="goToLogin">Mergi la login</button>
+</div>
           <div v-if="authMessage" class="auth-required-box">
             <p>{{ authMessage }}</p>
 
@@ -140,6 +152,14 @@ import { useRoute, useRouter } from "vue-router";
 import { doc, getDoc, collection, addDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../firebase";
+import { useFavorites } from "../composables/useFavorites";
+
+const {
+  favoriteMessage,
+  favoriteError,
+  isFavorite,
+  toggleFavorite,
+} = useFavorites();
 
 const route = useRoute();
 const router = useRouter();

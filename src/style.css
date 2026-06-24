@@ -1657,3 +1657,25 @@ main {
   font-weight: 700;
   font-size: 14px;
 }
+
+.favorite-outline.active {
+  background: var(--orange);
+  color: white;
+  border-color: var(--orange);
+}
+
+.favorite-feedback {
+  margin-bottom: 18px;
+}
+
+.favorite-profile-btn.active {
+  background: var(--orange);
+  color: white;
+  border-color: var(--orange);
+}
+
+.favorite-outline.active {
+  background: var(--orange);
+  color: white;
+  border-color: var(--orange);
+}
