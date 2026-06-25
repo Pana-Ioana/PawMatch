@@ -26,9 +26,27 @@
             Cererile mele de adopție
           </button>
 
-          <button @click="logoutUser">
-            Logout
+          <button @click="goToFavorites">
+            Favoritele mele
           </button>
+
+          <button v-if="!confirmLogout" @click="confirmLogout = true">
+            Ieși din cont
+          </button>
+
+          <div v-else class="logout-confirm">
+            <p>Sigur vrei să ieși?</p>
+
+            <div>
+              <button class="cancel-logout-btn" @click="confirmLogout = false">
+                Anulează
+              </button>
+
+              <button class="confirm-logout-btn" @click="logoutUser">
+                Logout
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -46,12 +64,14 @@ const router = useRouter();
 
 const userName = ref("");
 const dropdownOpen = ref(false);
+const confirmLogout = ref(false);
 
 onMounted(() => {
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
       userName.value = "";
       dropdownOpen.value = false;
+      confirmLogout.value = false;
       localStorage.removeItem("pawmatchUser");
       return;
     }
@@ -75,6 +95,7 @@ onMounted(() => {
 
 const toggleDropdown = () => {
   dropdownOpen.value = !dropdownOpen.value;
+  confirmLogout.value = false;
 };
 
 const goToLogin = () => {
@@ -83,14 +104,22 @@ const goToLogin = () => {
 
 const goToMyRequests = () => {
   dropdownOpen.value = false;
-  router.push("/requests");
+  router.push("/my-requests");
+};
+
+const goToFavorites = () => {
+  dropdownOpen.value = false;
+  router.push("/favorites");
 };
 
 const logoutUser = async () => {
   await signOut(auth);
   localStorage.removeItem("pawmatchUser");
+
   userName.value = "";
   dropdownOpen.value = false;
+  confirmLogout.value = false;
+
   router.push("/");
 };
 </script>
