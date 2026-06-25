@@ -7,6 +7,7 @@ import QuizPage from "../pages/QuizPage.vue";
 import RegisterPage from "../pages/RegisterPage.vue";
 import LoginPage from "../pages/LoginPage.vue";
 import RequestsPage from "../pages/RequestsPage.vue";
+import FavoritesPage from "../pages/FavoritesPage.vue";
 
 const routes = [
   {
@@ -43,6 +44,11 @@ const routes = [
     path: "/requests",
     name: "requests",
     component: RequestsPage,
+  },
+  {
+    path: "/favorites",
+    name: "favorites",
+    component: FavoritesPage,
   }
 ];
 

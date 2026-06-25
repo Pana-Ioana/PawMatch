@@ -1679,3 +1679,48 @@ main {
   color: white;
   border-color: var(--orange);
 }
+/* FAVORITES PAGE */
+
+.favorites-page {
+  min-height: 100vh;
+  padding: 54px 20px 80px;
+}
+
+.favorites-header,
+.favorites-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.favorites-header span {
+  display: inline-flex;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: white;
+  border: 1px solid var(--border);
+  color: var(--indigo);
+  font-weight: 800;
+  box-shadow: var(--shadow-card);
+}
+
+.favorites-header h1 {
+  margin: 20px 0 10px;
+  font-family: "Playfair Display", serif;
+  color: var(--indigo);
+  font-size: 52px;
+}
+
+.favorites-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+.favorites-content {
+  margin-top: 34px;
+}
+
+.favorite-page-message {
+  margin-top: 18px;
+}
