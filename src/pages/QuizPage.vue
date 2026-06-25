@@ -1,6 +1,18 @@
 <template>
   <div class="quiz-page">
-    <section v-if="!showResults" class="quiz-shell">
+    <div v-if="checkingAuth" class="loading-box quiz-auth-box">
+      Se verifică autentificarea...
+    </div>
+
+    <section v-else-if="!currentUser" class="auth-required-box quiz-auth-box">
+      <p>{{ authMessage }}</p>
+
+      <button @click="goToLogin">
+        Mergi la login
+      </button>
+    </section>
+
+    <section v-else-if="!showResults" class="quiz-shell">
       <div class="quiz-top">
         <span>Quiz PawMatch</span>
         <strong>{{ currentStep + 1 }} / {{ questions.length }}</strong>
@@ -47,7 +59,7 @@
 
         <button
           class="quiz-nav-btn primary"
-          :disabled="!answers[currentQuestion.id]"
+          :disabled="!answers[currentQuestion.id] || loading"
           @click="nextStep"
         >
           {{ isLastQuestion ? "Vezi recomandările" : "Continuă →" }}
@@ -59,11 +71,11 @@
       <div class="results-header">
         <div>
           <h2>Recomandările tale PawMatch</h2>
-          <p>Animăluțele sunt sortate după scorul de compatibilitate.</p>
+          <p>Rezultatele sunt sortate după scorul de compatibilitate.</p>
         </div>
 
         <button class="reset-filters-btn" @click="resetQuiz">
-          Reia quiz-ul
+          Refacere quiz
         </button>
       </div>
 
@@ -110,27 +122,54 @@
               <button class="details-btn" @click="goToPet(animal.id)">
                 Vezi profilul
               </button>
-              <button class="favorite-outline">♡</button>
+
+              <button
+                class="favorite-outline"
+                :class="{ active: isFavorite(animal.id) }"
+                @click="toggleFavorite(animal)"
+              >
+                {{ isFavorite(animal.id) ? "♥" : "♡" }}
+              </button>
             </div>
           </div>
         </article>
+      </div>
+
+      <p v-if="favoriteMessage" class="success-message favorite-feedback">
+        {{ favoriteMessage }}
+      </p>
+
+      <div v-if="favoriteError" class="auth-required-box favorite-feedback">
+        <p>{{ favoriteError }}</p>
       </div>
     </section>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import { collection, getDocs } from "firebase/firestore";
+import { ref, computed, onMounted } from "vue";
+import { collection, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "vue-router";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
+import { useFavorites } from "../composables/useFavorites";
 
 const router = useRouter();
 
 const loading = ref(false);
+const checkingAuth = ref(true);
 const showResults = ref(false);
 const currentStep = ref(0);
 const recommendedAnimals = ref([]);
+const currentUser = ref(null);
+const authMessage = ref("");
+
+const {
+  favoriteMessage,
+  favoriteError,
+  isFavorite,
+  toggleFavorite,
+} = useFavorites();
 
 const answers = ref({
   home: "",
@@ -279,8 +318,44 @@ const questions = [
   },
 ];
 
+onMounted(() => {
+  onAuthStateChanged(auth, async (user) => {
+    currentUser.value = user;
+
+    if (!user) {
+      authMessage.value =
+        "Trebuie să fii autentificat pentru a utiliza quiz-ul și pentru a salva recomandările personalizate.";
+
+      checkingAuth.value = false;
+      return;
+    }
+
+    authMessage.value = "";
+
+    await loadSavedQuizResults(user.uid);
+
+    checkingAuth.value = false;
+  });
+});
+
+const loadSavedQuizResults = async (userId) => {
+  const savedRef = doc(db, "users", userId, "quizResults", "latest");
+  const savedSnapshot = await getDoc(savedRef);
+
+  if (savedSnapshot.exists()) {
+    const data = savedSnapshot.data();
+
+    answers.value = data.answers || answers.value;
+    recommendedAnimals.value = data.recommendedAnimals || [];
+    showResults.value = recommendedAnimals.value.length > 0;
+  }
+};
+
 const currentQuestion = computed(() => questions[currentStep.value]);
-const isLastQuestion = computed(() => currentStep.value === questions.length - 1);
+
+const isLastQuestion = computed(() => {
+  return currentStep.value === questions.length - 1;
+});
 
 const progressPercent = computed(() => {
   return ((currentStep.value + 1) / questions.length) * 100;
@@ -366,9 +441,9 @@ const calculateRecommendations = async () => {
 
   const snapshot = await getDocs(collection(db, "animals"));
 
-  const animals = snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
+  const animals = snapshot.docs.map((docItem) => ({
+    id: docItem.id,
+    ...docItem.data(),
   }));
 
   recommendedAnimals.value = animals
@@ -378,7 +453,19 @@ const calculateRecommendations = async () => {
     }))
     .sort((a, b) => b.score - a.score);
 
+  if (currentUser.value) {
+    await saveQuizResults(currentUser.value.uid);
+  }
+
   loading.value = false;
+};
+
+const saveQuizResults = async (userId) => {
+  await setDoc(doc(db, "users", userId, "quizResults", "latest"), {
+    answers: answers.value,
+    recommendedAnimals: recommendedAnimals.value,
+    updatedAt: new Date(),
+  });
 };
 
 const resetQuiz = () => {
@@ -404,5 +491,9 @@ const splitTags = (text) => {
 
 const goToPet = (id) => {
   router.push(`/pets/${id}`);
+};
+
+const goToLogin = () => {
+  router.push("/login");
 };
 </script>
