@@ -5,44 +5,87 @@
     </router-link>
 
     <div class="nav-links">
-      <router-link to="/" class="nav-link">Acasă</router-link>
-      <router-link to="/pets" class="nav-link">Animăluțe</router-link>
-      <router-link to="/quiz" class="nav-link">Quiz</router-link>
-      <router-link to="/favorites" class="nav-link">Favorite</router-link>
+      <router-link to="/" class="nav-link">
+        Acasă
+      </router-link>
+
+      <router-link to="/pets" class="nav-link">
+        Animăluțe
+      </router-link>
+
+      <router-link to="/quiz" class="nav-link">
+        Quiz
+      </router-link>
+
+      <router-link to="/favorites" class="nav-link">
+        Favorite
+      </router-link>
     </div>
 
     <div class="account-area">
-      <button v-if="!userName" class="account-btn" @click="goToLogin">
+      <button
+        v-if="!userName"
+        class="account-btn"
+        @click="goToLogin"
+      >
         Contul meu
       </button>
 
-      <div v-else class="user-dropdown">
-        <button class="account-btn" @click="toggleDropdown">
+      <div
+        v-else
+        class="user-dropdown"
+      >
+        <button
+          class="account-btn"
+          @click="toggleDropdown"
+        >
           👤 {{ userName }}
         </button>
 
-        <div v-if="dropdownOpen" class="dropdown-menu">
+        <div
+          v-if="dropdownOpen"
+          class="dropdown-menu"
+        >
+          <button
+            v-if="isAdmin"
+            @click="goToAdminPets"
+          >
+            Admin pets
+          </button>
+
           <button @click="goToMyRequests">
-            Cererile mele de adopție
+            Cererile mele
           </button>
 
           <button @click="goToFavorites">
-            Favoritele mele
+            Favorite
           </button>
 
-          <button v-if="!confirmLogout" @click="confirmLogout = true">
+          <button
+            v-if="!confirmLogout"
+            @click="confirmLogout = true"
+          >
             Ieși din cont
           </button>
 
-          <div v-else class="logout-confirm">
-            <p>Sigur vrei să ieși?</p>
+          <div
+            v-else
+            class="logout-confirm"
+          >
+            <p>Sigur dorești să te deloghezi?</p>
 
             <div>
-              <button class="cancel-logout-btn" @click="confirmLogout = false">
+              <button
+                class="cancel-logout-btn"
+                @click="confirmLogout = false"
+              >
                 Anulează
               </button>
 
-              <button class="confirm-logout-btn" @click="logoutUser">
+              <button
+                class="confirm-logout-btn"
+                @click="logoutUser"
+              >
                 Logout
               </button>
             </div>
@@ -65,6 +108,7 @@ const router = useRouter();
 const userName = ref("");
 const dropdownOpen = ref(false);
 const confirmLogout = ref(false);
+const isAdmin = ref(false);
 
 onMounted(() => {
   onAuthStateChanged(auth, async (user) => {
@@ -72,24 +116,27 @@ onMounted(() => {
       userName.value = "";
       dropdownOpen.value = false;
       confirmLogout.value = false;
+      isAdmin.value = false;
       localStorage.removeItem("pawmatchUser");
       return;
     }
 
     const userDoc = await getDoc(doc(db, "users", user.uid));
 
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      userName.value = `${data.firstName} ${data.lastName}`;
+    if (!userDoc.exists()) return;
 
-      localStorage.setItem(
-        "pawmatchUser",
-        JSON.stringify({
-          uid: user.uid,
-          ...data,
-        })
-      );
-    }
+    const data = userDoc.data();
+
+    userName.value = `${data.firstName} ${data.lastName}`;
+    isAdmin.value = data.role === "admin";
+
+    localStorage.setItem(
+      "pawmatchUser",
+      JSON.stringify({
+        uid: user.uid,
+        ...data,
+      })
+    );
   });
 });
 
@@ -112,11 +159,18 @@ const goToFavorites = () => {
   router.push("/favorites");
 };
 
+const goToAdminPets = () => {
+  dropdownOpen.value = false;
+  router.push("/admin/pets");
+};
+
 const logoutUser = async () => {
   await signOut(auth);
+
   localStorage.removeItem("pawmatchUser");
 
   userName.value = "";
+  isAdmin.value = false;
   dropdownOpen.value = false;
   confirmLogout.value = false;
 

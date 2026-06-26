@@ -67,6 +67,16 @@ const loginUser = async () => {
 
     const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
 
+if (userDoc.exists()) {
+  const data = userDoc.data();
+
+  if (data.role === "admin") {
+    router.push("/admin/pets");
+  } else {
+    router.push("/");
+  }
+}
+
     if (userDoc.exists()) {
       localStorage.setItem(
         "pawmatchUser",
@@ -74,14 +84,23 @@ const loginUser = async () => {
           uid: userCredential.user.uid,
           ...userDoc.data(),
         })
+        
       );
     }
 
-    router.push("/");
+  if (
+  userCredential.user.email === import.meta.env.VITE_ADMIN_EMAIL
+) {
+  router.push("/admin/pets");
+} else {
+  router.push("/");
+}
   } catch (error) {
     errorMessage.value = "Emailul sau parola este incorectă.";
   } finally {
     loading.value = false;
   }
 };
+
+
 </script>

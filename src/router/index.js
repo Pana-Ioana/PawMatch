@@ -8,6 +8,7 @@ import RegisterPage from "../pages/RegisterPage.vue";
 import LoginPage from "../pages/LoginPage.vue";
 import RequestsPage from "../pages/RequestsPage.vue";
 import FavoritesPage from "../pages/FavoritesPage.vue";
+import AdminPetsPage from "../pages/AdminPetsPage.vue";
 
 const routes = [
   {
@@ -49,6 +50,12 @@ const routes = [
     path: "/favorites",
     name: "favorites",
     component: FavoritesPage,
+  }
+  ,
+  {
+    path: "/admin/pets",
+    name: "admin-pets",
+    component: AdminPetsPage,
   }
 ];
 
