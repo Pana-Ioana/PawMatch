@@ -13,7 +13,9 @@
     </section>
 
     <section class="admin-content">
-      <div v-if="checkingAuth" class="loading-box">Se verifică accesul...</div>
+      <div v-if="checkingAuth" class="loading-box">
+        Se verifică accesul...
+      </div>
 
       <div v-else-if="!isAdmin" class="empty-box">
         Nu ai acces la această pagină.
@@ -23,24 +25,44 @@
         <p v-if="successMessage" class="success-message">{{ successMessage }}</p>
         <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
-        <div v-if="loading" class="loading-box">Se încarcă animăluțele...</div>
+        <div class="admin-toolbar">
+          <input
+            v-model="search"
+            type="text"
+            placeholder="Caută după nume, specie, rasă, oraș sau status..."
+          />
+
+          <select v-model.number="itemsPerPage">
+            <option :value="5">5 / pagină</option>
+            <option :value="8">8 / pagină</option>
+            <option :value="12">12 / pagină</option>
+          </select>
+        </div>
+
+        <div v-if="loading" class="loading-box">
+          Se încarcă animăluțele...
+        </div>
+
+        <div v-else-if="filteredAnimals.length === 0" class="empty-box">
+          Nu există animăluțe care să corespundă căutării.
+        </div>
 
         <div v-else class="admin-table-wrap">
           <table class="admin-table">
             <thead>
               <tr>
                 <th>Imagine</th>
-                <th>Nume</th>
-                <th>Specie</th>
-                <th>Rasă</th>
-                <th>Oraș</th>
-                <th>Status</th>
+                <th @click="setSort('name')">Nume</th>
+                <th @click="setSort('species')">Specie</th>
+                <th @click="setSort('breed')">Rasă</th>
+                <th @click="setSort('city')">Oraș</th>
+                <th @click="setSort('status')">Status</th>
                 <th>Acțiuni</th>
               </tr>
             </thead>
 
             <tbody>
-              <tr v-for="animal in animals" :key="animal.id">
+              <tr v-for="animal in paginatedAnimals" :key="animal.id">
                 <td>
                   <img class="admin-pet-img" :src="animal.imageUrl" :alt="animal.name" />
                 </td>
@@ -55,13 +77,37 @@
 
                 <td>
                   <div class="admin-actions">
-                    <button class="edit-btn" @click="openEditForm(animal)">Edit</button>
-                    <button class="delete-btn" @click="confirmDelete(animal)">Delete</button>
+                    <button class="edit-btn" @click="openEditForm(animal)">
+                      Edit
+                    </button>
+
+                    <button class="delete-btn" @click="confirmDelete(animal)">
+                      Delete
+                    </button>
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
+
+          <div v-if="totalPages > 1" class="pagination admin-pagination">
+            <button :disabled="currentPage === 1" @click="currentPage--">
+              Înapoi
+            </button>
+
+            <button
+              v-for="page in totalPages"
+              :key="page"
+              :class="{ active: currentPage === page }"
+              @click="currentPage = page"
+            >
+              {{ page }}
+            </button>
+
+            <button :disabled="currentPage === totalPages" @click="currentPage++">
+              Înainte
+            </button>
+          </div>
         </div>
       </template>
     </section>
@@ -118,7 +164,12 @@
           </div>
 
           <input v-model="form.imageUrl" type="text" placeholder="URL imagine" />
-          <input v-model="form.temperament" type="text" placeholder="Temperament / ex: calm, jucăuș, afectuos" />
+
+          <input
+            v-model="form.temperament"
+            type="text"
+            placeholder="Temperament / ex: calm, jucăuș, afectuos"
+          />
 
           <textarea v-model="form.description" placeholder="Descriere"></textarea>
 
@@ -167,7 +218,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import {
   collection,
   getDocs,
@@ -181,15 +232,37 @@ import { auth, db } from "../firebase";
 
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL;
 
-const speciesOptions = ["Câine", "Pisică", "Iepuraș", "Pasăre", "Hamster"];
-const sizeOptions = ["Mică", "Medie", "Mare"];
-const genderOptions = ["Femelă", "Mascul"];
-const statusOptions = ["Disponibil", "În proces de adopție", "Adoptat"];
+const speciesOptions = [
+  "Câine",
+  "Pisică",
+  "Iepuraș",
+  "Pasăre",
+  "Hamster",
+];
+
+const sizeOptions = [
+  "Mică",
+  "Medie",
+  "Mare",
+];
+
+const genderOptions = [
+  "Femelă",
+  "Mascul",
+];
+
+const statusOptions = [
+  "Disponibil",
+  "În proces de adopție",
+  "Adoptat",
+];
 
 const animals = ref([]);
+
 const loading = ref(false);
 const saving = ref(false);
 const checkingAuth = ref(true);
+
 const isAdmin = ref(false);
 
 const showForm = ref(false);
@@ -199,6 +272,14 @@ const animalToDelete = ref(null);
 const successMessage = ref("");
 const errorMessage = ref("");
 const formError = ref("");
+
+const search = ref("");
+
+const currentPage = ref(1);
+const itemsPerPage = ref(8);
+
+const sortBy = ref("name");
+const sortAsc = ref(true);
 
 const emptyForm = () => ({
   name: "",
@@ -239,22 +320,64 @@ const loadAnimals = async () => {
       id: docItem.id,
       ...docItem.data(),
     }));
-  } catch (error) {
-    console.error(error);
-    errorMessage.value = "Animăluțele nu au putut fi încărcate.";
   } finally {
     loading.value = false;
   }
 };
 
-const isValidImageUrl = (url) => {
-  return url.startsWith("http://") || url.startsWith("https://");
+const filteredAnimals = computed(() => {
+  const query = search.value.toLowerCase().trim();
+
+  let result = animals.value.filter((animal) => {
+    if (!query) return true;
+
+    return (
+      animal.name?.toLowerCase().includes(query) ||
+      animal.species?.toLowerCase().includes(query) ||
+      animal.breed?.toLowerCase().includes(query) ||
+      animal.city?.toLowerCase().includes(query) ||
+      animal.status?.toLowerCase().includes(query)
+    );
+  });
+
+  result.sort((a, b) => {
+    const first = (a[sortBy.value] || "").toString().toLowerCase();
+    const second = (b[sortBy.value] || "").toString().toLowerCase();
+
+    if (sortAsc.value) {
+      return first.localeCompare(second);
+    }
+
+    return second.localeCompare(first);
+  });
+
+  return result;
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredAnimals.value.length / itemsPerPage.value);
+});
+
+const paginatedAnimals = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  return filteredAnimals.value.slice(start, start + itemsPerPage.value);
+});
+
+watch([search, itemsPerPage], () => {
+  currentPage.value = 1;
+});
+
+const setSort = (field) => {
+  if (sortBy.value === field) {
+    sortAsc.value = !sortAsc.value;
+  } else {
+    sortBy.value = field;
+    sortAsc.value = true;
+  }
 };
 
 const validateForm = () => {
   if (!form.value.name.trim()) return "Numele este obligatoriu.";
-  if (form.value.name.trim().length < 2) return "Numele trebuie să aibă minimum 2 caractere.";
-
   if (!form.value.species) return "Specia este obligatorie.";
   if (!form.value.breed.trim()) return "Rasa este obligatorie.";
   if (!form.value.ageLabel.trim()) return "Vârsta este obligatorie.";
@@ -262,52 +385,27 @@ const validateForm = () => {
   if (!form.value.size) return "Talia este obligatorie.";
   if (!form.value.gender) return "Sexul este obligatoriu.";
   if (!form.value.status) return "Statusul este obligatoriu.";
-
-  if (!form.value.imageUrl.trim()) return "URL-ul imaginii este obligatoriu.";
-  if (!isValidImageUrl(form.value.imageUrl.trim())) {
-    return "URL-ul imaginii trebuie să înceapă cu http:// sau https://.";
-  }
-
-  if (!form.value.temperament.trim()) return "Temperamentul este obligatoriu.";
+  if (!form.value.imageUrl.trim()) return "Imaginea este obligatorie.";
   if (!form.value.description.trim()) return "Descrierea este obligatorie.";
-  if (form.value.description.trim().length < 30) {
-    return "Descrierea trebuie să aibă minimum 30 de caractere.";
-  }
 
   return "";
 };
 
 const openCreateForm = () => {
-  successMessage.value = "";
-  errorMessage.value = "";
-  formError.value = "";
   editingAnimalId.value = null;
   form.value = emptyForm();
+  formError.value = "";
   showForm.value = true;
 };
 
 const openEditForm = (animal) => {
-  successMessage.value = "";
-  errorMessage.value = "";
-  formError.value = "";
   editingAnimalId.value = animal.id;
 
   form.value = {
-    name: animal.name || "",
-    species: animal.species || "",
-    breed: animal.breed || "",
-    ageLabel: animal.ageLabel || "",
-    city: animal.city || "",
-    size: animal.size || "",
-    gender: animal.gender || "",
-    status: animal.status || "Disponibil",
-    imageUrl: animal.imageUrl || "",
-    temperament: animal.temperament || "",
-    description: animal.description || "",
-    isVaccinated: animal.isVaccinated || false,
-    isSterilized: animal.isSterilized || false,
+    ...animal,
   };
 
+  formError.value = "";
   showForm.value = true;
 };
 
@@ -319,79 +417,59 @@ const closeForm = () => {
 
 const saveAnimal = async () => {
   formError.value = "";
-  successMessage.value = "";
-  errorMessage.value = "";
 
-  const validationError = validateForm();
+  const validation = validateForm();
 
-  if (validationError) {
-    formError.value = validationError;
+  if (validation) {
+    formError.value = validation;
     return;
   }
 
   saving.value = true;
 
-  const animalData = {
-    name: form.value.name.trim(),
-    species: form.value.species,
-    breed: form.value.breed.trim(),
-    ageLabel: form.value.ageLabel.trim(),
-    city: form.value.city.trim(),
-    size: form.value.size,
-    gender: form.value.gender,
-    status: form.value.status,
-    imageUrl: form.value.imageUrl.trim(),
-    temperament: form.value.temperament.trim(),
-    description: form.value.description.trim(),
-    isVaccinated: form.value.isVaccinated,
-    isSterilized: form.value.isSterilized,
-    updatedAt: new Date(),
-  };
-
   try {
     if (editingAnimalId.value) {
-      await updateDoc(doc(db, "animals", editingAnimalId.value), animalData);
-      successMessage.value = "Animalul a fost modificat cu succes.";
+      await updateDoc(
+        doc(db, "animals", editingAnimalId.value),
+        {
+          ...form.value,
+          updatedAt: new Date(),
+        }
+      );
+
+      successMessage.value = "Animal modificat cu succes.";
     } else {
       await addDoc(collection(db, "animals"), {
-        ...animalData,
+        ...form.value,
         createdAt: new Date(),
       });
 
-      successMessage.value = "Animalul a fost adăugat cu succes.";
+      successMessage.value = "Animal adăugat cu succes.";
     }
 
     closeForm();
+
     await loadAnimals();
-  } catch (error) {
-    console.error(error);
-    errorMessage.value = "Animalul nu a putut fi salvat.";
+  } catch {
+    errorMessage.value = "A apărut o eroare.";
   } finally {
     saving.value = false;
   }
 };
 
 const confirmDelete = (animal) => {
-  successMessage.value = "";
-  errorMessage.value = "";
   animalToDelete.value = animal;
 };
 
 const deleteAnimal = async () => {
-  if (!animalToDelete.value) return;
+  await deleteDoc(
+    doc(db, "animals", animalToDelete.value.id)
+  );
 
-  try {
-    await deleteDoc(doc(db, "animals", animalToDelete.value.id));
+  animalToDelete.value = null;
 
-    animals.value = animals.value.filter(
-      (animal) => animal.id !== animalToDelete.value.id
-    );
+  successMessage.value = "Animal șters cu succes.";
 
-    successMessage.value = "Animalul a fost șters cu succes.";
-    animalToDelete.value = null;
-  } catch (error) {
-    console.error(error);
-    errorMessage.value = "Animalul nu a putut fi șters.";
-  }
+  await loadAnimals();
 };
 </script>

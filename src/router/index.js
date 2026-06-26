@@ -9,6 +9,7 @@ import LoginPage from "../pages/LoginPage.vue";
 import RequestsPage from "../pages/RequestsPage.vue";
 import FavoritesPage from "../pages/FavoritesPage.vue";
 import AdminPetsPage from "../pages/AdminPetsPage.vue";
+import AdminRequestsPage from "../pages/AdminRequestsPage.vue";
 
 const routes = [
   {
@@ -57,6 +58,13 @@ const routes = [
     name: "admin-pets",
     component: AdminPetsPage,
   }
+  ,
+  {
+    path: "/admin/requests",
+    name: "admin-requests",
+    component: AdminRequestsPage,
+  }
+
 ];
 
 const router = createRouter({

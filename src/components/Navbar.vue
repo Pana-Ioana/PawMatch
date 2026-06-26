@@ -53,6 +53,10 @@
             Admin pets
           </button>
 
+          <button v-if="isAdmin" @click="goToAdminRequests">
+  Admin cereri adopție
+</button>
+
           <button @click="goToMyRequests">
             Cererile mele
           </button>
@@ -151,7 +155,7 @@ const goToLogin = () => {
 
 const goToMyRequests = () => {
   dropdownOpen.value = false;
-  router.push("/my-requests");
+  router.push("/requests");
 };
 
 const goToFavorites = () => {
@@ -162,6 +166,11 @@ const goToFavorites = () => {
 const goToAdminPets = () => {
   dropdownOpen.value = false;
   router.push("/admin/pets");
+};
+
+const goToAdminRequests = () => {
+  dropdownOpen.value = false;
+  router.push("/admin/requests");
 };
 
 const logoutUser = async () => {
