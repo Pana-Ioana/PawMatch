@@ -1,4 +1,6 @@
 import { createRouter, createWebHashHistory } from "vue-router";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase";
 
 import HomePage from "../pages/HomePage.vue";
 import PetsPage from "../pages/PetsPage.vue";
@@ -72,4 +74,32 @@ const router = createRouter({
   routes,
 });
 
+const getCurrentUser = () => {
+  return new Promise((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe();
+      resolve(user);
+    });
+  });
+};
+
+router.beforeEach(async (to) => {
+  const user = await getCurrentUser();
+
+  if (to.meta.requiresAuth && !user) {
+    return "/login";
+  }
+
+  if (to.meta.requiresAdmin) {
+    if (!user) {
+      return "/login";
+    }
+
+    if (user.email !== import.meta.env.VITE_ADMIN_EMAIL) {
+      return "/";
+    }
+  }
+
+  return true;
+});
 export default router;
