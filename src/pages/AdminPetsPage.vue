@@ -312,14 +312,33 @@ onMounted(() => {
 
 const loadAnimals = async () => {
   loading.value = true;
+  errorMessage.value = "";
 
   try {
-    const snapshot = await getDocs(collection(db, "animals"));
+    const token = await auth.currentUser.getIdToken();
 
-    animals.value = snapshot.docs.map((docItem) => ({
-      id: docItem.id,
-      ...docItem.data(),
-    }));
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/admin/pets`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      errorMessage.value = data.message || "Animalele nu au putut fi încărcate.";
+      animals.value = [];
+      return;
+    }
+
+    animals.value = data.animals || [];
+  } catch (error) {
+    console.error(error);
+    errorMessage.value = "Nu se poate conecta la backend.";
+    animals.value = [];
   } finally {
     loading.value = false;
   }

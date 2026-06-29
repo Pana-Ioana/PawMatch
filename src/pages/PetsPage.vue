@@ -14,29 +14,21 @@
         </p>
 
         <div class="stats">
-          <div class="stat-card">
-            <h3>{{ animals.length }}</h3>
-            <span>animăluțe disponibile</span>
-          </div>
+  <div class="stat-card">
+    <h3>{{ availableAnimalsCount }}</h3>
+    <span>animăluțe disponibile</span>
+  </div>
 
-          <div class="stat-card">
-            <h3>15</h3>
-            <span>adăposturi partenere</span>
-          </div>
+  <div class="stat-card">
+    <h3>{{ adoptedAnimalsCount }}</h3>
+    <span>adopții reușite</span>
+  </div>
 
-          <div class="stat-card">
-            <h3>347</h3>
-            <span>adopții reușite</span>
-          </div>
-        </div>
-
-        <div class="search-container">
-          <input
-            type="text"
-            v-model="search"
-            placeholder="Caută după nume, specie, oraș sau personalitate..."
-          />
-        </div>
+  <div class="stat-card">
+    <h3>{{ adoptionProcessCount }}</h3>
+    <span>în proces de adopție</span>
+  </div>
+</div>
 
         <div class="filters-panel">
           <select v-model="selectedSpecies">
@@ -317,6 +309,23 @@ const speciesOptions = computed(() => uniqueOptions("species"));
 const cityOptions = computed(() => uniqueOptions("city"));
 const sizeOptions = computed(() => uniqueOptions("size"));
 const statusOptions = computed(() => uniqueOptions("status"));
+const availableAnimalsCount = computed(() => {
+  return animals.value.filter(
+    (animal) => animal.status === "Disponibil"
+  ).length;
+});
+
+const adoptedAnimalsCount = computed(() => {
+  return animals.value.filter(
+    (animal) => animal.status === "Adoptat"
+  ).length;
+});
+
+const adoptionProcessCount = computed(() => {
+  return animals.value.filter(
+    (animal) => animal.status === "În proces de adopție"
+  ).length;
+});
 
 const filteredAnimals = computed(() => {
   const query = search.value.toLowerCase().trim();

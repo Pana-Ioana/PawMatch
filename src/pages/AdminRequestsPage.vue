@@ -139,23 +139,20 @@ const loadRequests = async () => {
   errorMessage.value = "";
 
   try {
-    const snapshot = await getDocs(collection(db, "adoptionRequests"));
+    const token = await auth.currentUser.getIdToken();
 
-    requests.value = snapshot.docs
-      .map((docItem) => {
-        const data = docItem.data();
+const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/api/admin/requests`,
+    {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    }
+);
 
-        return {
-          id: docItem.id,
-          ...data,
-          newStatus: data.status || "pending",
-        };
-      })
-      .sort((a, b) => {
-        const dateA = a.createdAt?.seconds || 0;
-        const dateB = b.createdAt?.seconds || 0;
-        return dateB - dateA;
-      });
+const data = await response.json();
+
+requests.value = data.requests;
   } catch (error) {
     console.error(error);
     errorMessage.value = "Cererile nu au putut fi încărcate.";
